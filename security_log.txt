@@ -1,0 +1,69 @@
+[2025-07-05 11:23:44] protection_enabled | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Standard protection
+[2025-07-05 11:30:30] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 8000嗎
+[2025-07-05 11:30:31] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 可能一個東西5000-8000
+[2025-07-05 11:30:36] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 可以複製的那種
+[2025-07-05 11:30:45] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 我覺得差不多 
+[2025-07-05 11:30:53] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 看要不要花太多時間
+[2025-07-05 11:30:57] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 好 那就5000-8000
+[2025-07-05 11:31:04] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 期末考大家會比較願意花錢
+[2025-07-05 11:31:07] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 有剛需
+[2025-07-05 11:31:10] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 他們的需求都挺簡單
+[2025-07-05 11:31:11] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 真的
+[2025-07-05 11:31:22] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 晚上再討論看看
+[2025-07-05 11:31:23] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 哈哈哈
+[2025-07-05 11:32:26] user_banned | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Banned user: Ue585da1f0a42432b10449cd660b9623e
+[2025-07-05 11:33:21] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: Security
+[2025-07-05 12:57:04] mention_all | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Used @all function
+[2025-07-05 12:57:20] mention_all | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Used @all function
+[2025-07-05 12:57:58] suspicious_blacklisted_user | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 牛
+[2025-07-05 12:57:58] blacklist_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 牛
+[2025-07-05 13:04:03] suspicious_blacklisted_user | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: Security 
+[2025-07-05 13:04:03] blacklist_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: Security 
+[2025-07-05 13:04:12] suspicious_blacklisted_user | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: read check
+[2025-07-05 13:04:12] blacklist_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: read check
+[2025-07-05 13:04:26] suspicious_blacklisted_user | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: @All 
+[2025-07-05 13:04:26] blacklist_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: @All 
+[2025-07-05 13:04:38] suspicious_blacklisted_user | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 瞭解
+[2025-07-05 13:04:38] blacklist_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 瞭解
+[2025-07-05 13:04:40] suspicious_blacklisted_user | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 蠻牛的
+[2025-07-05 13:04:40] blacklist_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 蠻牛的
+[2025-07-05 13:04:50] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 你輸入看看
+[2025-07-05 13:04:54] suspicious_blacklisted_user | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: grant me
+[2025-07-05 13:04:54] blacklist_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: grant me
+[2025-07-05 13:04:59] suspicious_blacklisted_user | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 沒權限
+[2025-07-05 13:04:59] blacklist_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 沒權限
+[2025-07-05 13:05:04] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 連再一起
+[2025-07-05 13:05:17] suspicious_blacklisted_user | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: grantme
+[2025-07-05 13:05:17] blacklist_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: grantme
+[2025-07-05 13:06:55] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: unban:Ue585da1f0a42432b10449cd660b9623e
+[2025-07-05 13:06:55] user_unbanned | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Unbanned user: Ue585da1f0a42432b10449cd660b9623e
+[2025-07-05 13:07:02] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 剛把你黑名單了
+[2025-07-05 13:07:08] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: Sorry
+[2025-07-05 13:07:27] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 重新
+[2025-07-05 13:08:03] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 這你的用戶id
+[2025-07-05 13:08:08] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 這樣就有權限了
+[2025-07-05 13:08:21] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: Help
+[2025-07-05 13:08:43] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: Status
+[2025-07-05 13:08:56] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: Unprotect
+[2025-07-05 13:08:56] protection_disabled | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Protection disabled
+[2025-07-05 13:09:04] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: Banlist
+[2025-07-05 13:10:35] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 🔍 異常行為檢測
+
+踢人監控 - 檢測頻繁踢人行為 (1小時3人/24小時5人)
+邀請監控 - 識別大量邀請活動 (1小時10人/24小時20人)
+活動分析 - 追蹤用戶行為模式，識別異常
+[2025-07-05 13:10:44] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 我在寫readme
+[2025-07-05 13:11:02] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 但沒人給我踢
+[2025-07-05 13:11:15] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 晚點推上github
+[2025-07-05 13:11:26] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 試試看
+[2025-07-05 13:12:34] member_left | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Uc59e06bde5e994758a851d88528d9f84 | Details: Member left group
+[2025-07-05 13:12:34] member_left | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U8a68ee04b548aaf10d8fab73e97696b9 | Details: Member left group
+[2025-07-05 13:12:34] abnormal_rapid_kicks | Group: Cd59a266a65d7d8d7d975360569d0223d | User: unknown_kicker | Details: Potential kick detected for user: Uc78dfd452cc4967a0aefac042b53c3de
+[2025-07-05 13:12:35] member_left | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Uc78dfd452cc4967a0aefac042b53c3de | Details: Member left group
+[2025-07-05 13:13:17] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 一個群組只能有一個機器人
+[2025-07-05 13:14:54] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 了解
+[2025-07-05 13:15:12] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 社科院學生感覺ㄧ言不合就會開跳
+[2025-07-05 13:16:11] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 笑死
+[2025-07-05 13:16:15] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 哇靠你在學校喔
+[2025-07-05 13:16:21] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: Ue585da1f0a42432b10449cd660b9623e | Details: Message: 來拉屎
+[2025-07-05 13:16:48] suspicious_high_activity | Group: Cd59a266a65d7d8d7d975360569d0223d | User: U215dfe5f0cdc8c5ddd970a5d2fb4b288 | Details: Message: 行
