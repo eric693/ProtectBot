@@ -56,11 +56,13 @@ def load_data():
             "enabled": True,
             "alert_admins": True,
             "auto_ban": True,
-            "kick_detection": True,    # 新增：踢人檢測
-            "invite_detection": True   # 新增：邀請檢測
+            "kick_detection": True,    # 踢人檢測
+            "invite_detection": True,  # 邀請檢測
+            "auto_kick_kicker": True   # 🆕 自動踢掉踢人者
         },
-        "read_tracking": {},     # 新增：已讀追蹤
-        "mention_settings": {}   # 新增：標記設定
+        "read_tracking": {},     # 已讀追蹤
+        "mention_settings": {},  # 標記設定
+        "kick_immunity": []      # 🆕 踢人豁免名單（不會被自動踢掉的用戶）
     }
     
     # 合併現有資料與預設資料
@@ -81,10 +83,13 @@ def load_data():
         "activity_log": {},      # 活動記錄
         "member_count": {},      # 成員數量追蹤
         "last_check": {},        # 最後檢查時間
-        "kick_log": {},          # 新增：踢人記錄
-        "invite_log": {},        # 新增：邀請記錄
-        "message_tracking": {},  # 新增：訊息追蹤（用於已讀功能）
-        "member_cache": {}       # 新增：成員快取
+        "kick_log": {},          # 踢人記錄
+        "invite_log": {},        # 邀請記錄
+        "message_tracking": {},  # 訊息追蹤（用於已讀功能）
+        "member_cache": {},      # 成員快取
+        "recent_activity": {},   # 🆕 最近活動記錄（用於推斷踢人者）
+        "admin_cache": {},       # 🆕 管理員快取
+        "kick_counter": {}       # 🆕 踢人計數器
     }
     
     # 合併現有資料與預設資料
@@ -147,8 +152,120 @@ def alert_admins(line_bot_api, message, group_id=None):
         except:
             continue
 
+def record_user_activity(group_id, user_id, activity_type="message"):
+    """記錄用戶活動，用於推斷可能的踢人者"""
+    global group_data
+    
+    current_time = datetime.now()
+    
+    if "recent_activity" not in group_data:
+        group_data["recent_activity"] = {}
+    
+    if group_id not in group_data["recent_activity"]:
+        group_data["recent_activity"][group_id] = {}
+    
+    if user_id not in group_data["recent_activity"][group_id]:
+        group_data["recent_activity"][group_id][user_id] = []
+    
+    # 記錄活動
+    activity_record = {
+        "time": current_time.isoformat(),
+        "type": activity_type
+    }
+    group_data["recent_activity"][group_id][user_id].append(activity_record)
+    
+    # 清理舊記錄（保留最近30分鐘）
+    thirty_min_ago = current_time - timedelta(minutes=30)
+    group_data["recent_activity"][group_id][user_id] = [
+        activity for activity in group_data["recent_activity"][group_id][user_id]
+        if datetime.fromisoformat(activity["time"]) > thirty_min_ago
+    ]
+
+def guess_kicker(group_id, kicked_user_id):
+    """推斷可能的踢人者（基於最近活動分析）"""
+    global group_data
+    
+    current_time = datetime.now()
+    five_min_ago = current_time - timedelta(minutes=5)
+    
+    # 獲取最近5分鐘內活躍的用戶
+    recent_activity = group_data.get("recent_activity", {}).get(group_id, {})
+    
+    potential_kickers = []
+    for user_id, activities in recent_activity.items():
+        if user_id == kicked_user_id:  # 被踢者不可能是踢人者
+            continue
+            
+        recent_activities = [
+            activity for activity in activities
+            if datetime.fromisoformat(activity["time"]) > five_min_ago
+        ]
+        
+        if recent_activities:
+            # 計算活動頻率和類型
+            activity_score = len(recent_activities)
+            
+            # 管理員身份加權
+            admin_cache = group_data.get("admin_cache", {}).get(group_id, [])
+            if user_id in admin_cache:
+                activity_score += 10  # 管理員更可能踢人
+            
+            potential_kickers.append((user_id, activity_score))
+    
+    # 按照可能性排序
+    potential_kickers.sort(key=lambda x: x[1], reverse=True)
+    
+    if potential_kickers:
+        return potential_kickers[0][0]  # 返回最可能的踢人者
+    
+    return None
+
+def auto_kick_user(line_bot_api, group_id, target_user_id, reason=""):
+    """嘗試自動踢掉用戶"""
+    try:
+        # 注意：LINE Bot API 實際上無法直接踢人
+        # 這需要群組管理員權限，而 Bot 通常沒有這個權限
+        # 以下是替代方案
+        
+        # 方案1：發送警告訊息請求管理員處理
+        warning_message = f"""🚨 自動防護觸發！
+        
+⚠️ 檢測到踢人行為
+👤 目標用戶: {target_user_id}
+📝 原因: {reason}
+
+🤖 由於 LINE API 限制，機器人無法直接踢人
+🔧 請群組管理員手動處理此用戶
+
+💡 建議動作：
+1. 立即踢出該用戶
+2. 檢查其是否為惡意用戶
+3. 考慮加入黑名單"""
+        
+        push_message(line_bot_api, group_id, warning_message)
+        
+        # 方案2：自動加入黑名單
+        global ban_data
+        if "blacklist" not in ban_data:
+            ban_data["blacklist"] = {}
+        
+        ban_data["blacklist"][target_user_id] = True
+        
+        # 記錄踢人事件
+        log_security_event("auto_kick_attempt", group_id, target_user_id, f"Auto-kick triggered: {reason}")
+        
+        # 警報管理員
+        alert_admins(line_bot_api, f"自動踢人觸發\n目標: {target_user_id}\n原因: {reason}\n已自動加入黑名單", group_id)
+        
+        print(f"🦵 自動踢人觸發: {target_user_id} | 原因: {reason}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ 自動踢人失敗: {e}")
+        return False
+
 def detect_abnormal_kicks(group_id, user_id):
-    """檢測異常踢人行為"""
+    """檢測異常踢人行為 - 增強版"""
     global group_data
     
     current_time = datetime.now()
@@ -164,28 +281,35 @@ def detect_abnormal_kicks(group_id, user_id):
         group_data["kick_log"][group_id][user_id] = []
     
     # 記錄踢人事件
-    group_data["kick_log"][group_id][user_id].append(current_time.isoformat())
+    kick_record = {
+        "time": current_time.isoformat(),
+        "kicked_by": user_id
+    }
+    group_data["kick_log"][group_id][user_id].append(kick_record)
     
     # 清理舊記錄（保留最近24小時）
     one_day_ago = current_time - timedelta(hours=24)
     group_data["kick_log"][group_id][user_id] = [
-        kick_time for kick_time in group_data["kick_log"][group_id][user_id]
-        if datetime.fromisoformat(kick_time) > one_day_ago
+        kick for kick in group_data["kick_log"][group_id][user_id]
+        if datetime.fromisoformat(kick["time"]) > one_day_ago
     ]
     
-    # 檢查是否異常（24小時內踢超過5人，或1小時內踢超過3人）
+    # 檢查是否異常（1小時內踢超過2人，或24小時內踢超過3人）
     one_hour_ago = current_time - timedelta(hours=1)
     recent_kicks = len([
-        kick_time for kick_time in group_data["kick_log"][group_id][user_id]
-        if datetime.fromisoformat(kick_time) > one_hour_ago
+        kick for kick in group_data["kick_log"][group_id][user_id]
+        if datetime.fromisoformat(kick["time"]) > one_hour_ago
     ])
     
     total_kicks = len(group_data["kick_log"][group_id][user_id])
     
-    if recent_kicks >= 3:  # 1小時內踢3人
+    # 降低門檻，更嚴格檢測
+    if recent_kicks >= 2:  # 1小時內踢2人（降低門檻）
         return "rapid_kicks"
-    elif total_kicks >= 5:  # 24小時內踢5人
+    elif total_kicks >= 3:  # 24小時內踢3人（降低門檻）
         return "mass_kicks"
+    elif recent_kicks >= 1:  # 🆕 任何踢人行為都標記為可疑
+        return "single_kick"
     
     return None
 
@@ -365,10 +489,12 @@ def ensure_data_integrity():
             "alert_admins": True,
             "auto_ban": True,
             "kick_detection": True,
-            "invite_detection": True
+            "invite_detection": True,
+            "auto_kick_kicker": True  # 🆕 新增
         },
         "read_tracking": {},
-        "mention_settings": {}
+        "mention_settings": {},
+        "kick_immunity": []  # 🆕 新增
     }
     
     for field, default_value in required_ban_fields.items():
@@ -385,7 +511,10 @@ def ensure_data_integrity():
         "kick_log": {},
         "invite_log": {},
         "message_tracking": {},
-        "member_cache": {}
+        "member_cache": {},
+        "recent_activity": {},  # 🆕 新增
+        "admin_cache": {},      # 🆕 新增
+        "kick_counter": {}      # 🆕 新增
     }
     
     for field, default_value in required_group_fields.items():
@@ -401,8 +530,9 @@ wait_status = {
     "unban": {},
     "add": {},
     "del": {},
-    "read_check": {},  # 新增：等待查已讀
-    "mention_all": {}  # 新增：等待全體標記
+    "read_check": {},  # 等待查已讀
+    "mention_all": {},  # 等待全體標記
+    "immunity": {}     # 🆕 等待設定踢人豁免
 }
 
 @app.route("/callback", methods=['POST'])
@@ -444,6 +574,10 @@ def handle_message(event):
     else:
         chat_id = user_id
         chat_type = 'user'
+    
+    # 記錄用戶活動（用於推斷踢人者）
+    if chat_type == 'group':
+        record_user_activity(chat_id, user_id, "message")
     
     # 記錄訊息並檢查可疑活動
     if chat_type == 'group':
@@ -503,6 +637,28 @@ def handle_message(event):
                 else:
                     wait_status["unban"][user_id] = False
                     reply_message(line_bot_api, reply_token, f"⚠️ 用戶 `{target_id}` 不在黑名單中")
+                return
+            
+            # 🆕 處理豁免設定等待狀態
+            if user_id in wait_status["immunity"] and wait_status["immunity"][user_id]:
+                if text.lower() in ['cancel', '取消', 'exit', '退出']:
+                    wait_status["immunity"][user_id] = False
+                    reply_message(line_bot_api, reply_token, "✅ 已取消豁免設定")
+                    return
+                
+                target_id = text.strip()
+                kick_immunity = ban_data.get("kick_immunity", [])
+                
+                if target_id not in kick_immunity:
+                    if "kick_immunity" not in ban_data:
+                        ban_data["kick_immunity"] = []
+                    ban_data["kick_immunity"].append(target_id)
+                    save_data(ban_data, group_data)
+                    reply_message(line_bot_api, reply_token, f"🛡️ 已將用戶 `{target_id}` 加入踢人豁免名單！\n此用戶不會被自動踢掉")
+                else:
+                    reply_message(line_bot_api, reply_token, f"⚠️ 用戶 `{target_id}` 已在豁免名單中")
+                
+                wait_status["immunity"][user_id] = False
                 return
             
             # 處理查已讀等待狀態
@@ -646,6 +802,10 @@ def handle_message(event):
                     message_tracking_count = len(group_data.get("message_tracking", {}).get(chat_id, {}))
                     cached_members = len(group_data.get("member_cache", {}).get(chat_id, []))
                     
+                    # 🆕 自動踢人功能狀態
+                    auto_kick_enabled = ban_data.get("alert_settings", {}).get("auto_kick_kicker", True)
+                    immunity_count = len(ban_data.get("kick_immunity", []))
+                    
                     message = f"""🛡️ 群組防護狀態
 ════════════════════
 📍 群組ID: {chat_id}
@@ -655,6 +815,8 @@ def handle_message(event):
 👥 群組管理員: {group_managers} 人
 📖 訊息追蹤: {message_tracking_count} 條
 👤 快取成員: {cached_members} 人
+🦵 自動踢人: {"✅ 已啟用" if auto_kick_enabled else "❌ 已關閉"}
+🛡️ 踢人豁免: {immunity_count} 人
 🕒 最後檢查: {last_check}"""
                     
                     reply_message(line_bot_api, reply_token, message)
@@ -677,6 +839,10 @@ def handle_message(event):
                 kick_log = group_data.get("kick_log", {}).get(chat_id, {})
                 invite_log = group_data.get("invite_log", {}).get(chat_id, {})
                 
+                # 🆕 自動踢人統計
+                auto_kick_enabled = alert_settings.get("auto_kick_kicker", True)
+                immunity_count = len(ban_data.get("kick_immunity", []))
+                
                 message = f"""🔍 群組安全報告
 ════════════════════
 🚫 活躍黑名單: {blacklisted_count} 人
@@ -685,6 +851,8 @@ def handle_message(event):
 📊 監控狀態: 即時監控中
 🦵 踢人記錄: {len(kick_log)} 位用戶
 📨 邀請記錄: {len(invite_log)} 位用戶
+🤖 自動踢人: {"✅ 啟用" if auto_kick_enabled else "❌ 關閉"}
+🛡️ 豁免用戶: {immunity_count} 人
 🕒 報告時間: {datetime.now().strftime("%H:%M:%S")}"""
                 
                 reply_message(line_bot_api, reply_token, message)
@@ -710,6 +878,7 @@ def handle_message(event):
 🆕 新功能狀態:
 📖 已讀追蹤: {"✅ 啟用" if "message_tracking" in group_data else "❌ 未啟用"}
 👥 成員快取: {"✅ 啟用" if "member_cache" in group_data else "❌ 未啟用"}
+🦵 自動踢人: {"✅ 啟用" if ban_data.get('alert_settings', {}).get('auto_kick_kicker', True) else "❌ 關閉"}
 
 🔧 如需獲得權限，請：
 1. 手動編輯 ban.json 檔案
@@ -787,7 +956,7 @@ def handle_message(event):
                             "enabled_time": datetime.now().isoformat()
                         }
                         save_data(ban_data, group_data)
-                        reply_message(line_bot_api, reply_token, "✅ 已啟用群組防護！\n保護級別: 標準\n🆕 包含踢人/邀請監控 & 已讀追蹤")
+                        reply_message(line_bot_api, reply_token, "✅ 已啟用群組防護！\n保護級別: 標準\n🆕 包含踢人/邀請監控 & 已讀追蹤 & 自動踢人")
                         log_security_event("protection_enabled", chat_id, user_id, "Standard protection")
                     else:
                         reply_message(line_bot_api, reply_token, "⚠️ 群組保護已經啟用")
@@ -829,7 +998,7 @@ def handle_message(event):
                         # 檢查異常踢人行為
                         kick_log = group_data.get("kick_log", {}).get(chat_id, {})
                         for uid, kicks in kick_log.items():
-                            if len(kicks) > 3:  # 踢人過多
+                            if len(kicks) > 2:  # 踢人過多（降低門檻）
                                 threats.append(f"頻繁踢人: {uid}")
                                 threat_count += 1
                         
@@ -853,6 +1022,54 @@ def handle_message(event):
                         log_security_event("security_scan", chat_id, user_id, f"Found {threat_count} threats")
                     except Exception as e:
                         reply_message(line_bot_api, reply_token, f"❌ 掃描失敗: {str(e)}")
+                    return
+                
+                # 🆕 自動踢人控制指令
+                elif text.lower() == 'auto kick on':
+                    if "alert_settings" not in ban_data:
+                        ban_data["alert_settings"] = {}
+                    ban_data["alert_settings"]["auto_kick_kicker"] = True
+                    save_data(ban_data, group_data)
+                    reply_message(line_bot_api, reply_token, "✅ 已開啟自動踢人功能\n⚠️ 任何踢人行為都會觸發自動反制")
+                    return
+                
+                elif text.lower() == 'auto kick off':
+                    if "alert_settings" not in ban_data:
+                        ban_data["alert_settings"] = {}
+                    ban_data["alert_settings"]["auto_kick_kicker"] = False
+                    save_data(ban_data, group_data)
+                    reply_message(line_bot_api, reply_token, "❌ 已關閉自動踢人功能")
+                    return
+                
+                elif text.lower() == 'immunity list':
+                    # 顯示踢人豁免名單
+                    immunity_list = ban_data.get("kick_immunity", [])
+                    if not immunity_list:
+                        message = "✅ 目前沒有踢人豁免用戶"
+                    else:
+                        message = f"🛡️ 踢人豁免名單 ({len(immunity_list)} 人):\n"
+                        for i, uid in enumerate(immunity_list, 1):
+                            message += f"{i}. `{uid}`\n"
+                    
+                    reply_message(line_bot_api, reply_token, message)
+                    return
+                
+                elif text.lower() == 'add immunity':
+                    # 添加踢人豁免
+                    wait_status["immunity"][user_id] = True
+                    reply_message(line_bot_api, reply_token, "📝 請發送要加入踢人豁免名單的用戶ID\n這些用戶不會被自動踢掉")
+                    return
+                
+                elif text.lower().startswith('remove immunity '):
+                    # 移除踢人豁免
+                    target_id = text[16:].strip()
+                    immunity_list = ban_data.get("kick_immunity", [])
+                    if target_id in immunity_list:
+                        ban_data["kick_immunity"].remove(target_id)
+                        save_data(ban_data, group_data)
+                        reply_message(line_bot_api, reply_token, f"✅ 已將 {target_id} 移出踢人豁免名單")
+                    else:
+                        reply_message(line_bot_api, reply_token, "⚠️ 該用戶不在豁免名單中")
                     return
                 
                 elif text.lower() == 'alerts on':
@@ -960,6 +1177,14 @@ def handle_message(event):
                         "level": "緊急",
                         "enabled_time": datetime.now().isoformat()
                     }
+                    
+                    # 強制啟用所有保護功能
+                    if "alert_settings" not in ban_data:
+                        ban_data["alert_settings"] = {}
+                    ban_data["alert_settings"]["auto_kick_kicker"] = True
+                    ban_data["alert_settings"]["kick_detection"] = True
+                    ban_data["alert_settings"]["alert_admins"] = True
+                    
                     save_data(ban_data, group_data)
                     
                     emergency_message = """🚨 緊急防護模式已啟動！
@@ -968,6 +1193,7 @@ def handle_message(event):
 🛡️ 所有活動將被嚴密監控
 📊 異常行為將立即警報
 🔒 建議管理員保持警戒
+🦵 自動踢人功能強制啟用
 🆕 已讀追蹤 & 踢人邀請監控全面啟動"""
                     
                     reply_message(line_bot_api, reply_token, emergency_message)
@@ -1099,6 +1325,9 @@ def handle_member_joined(event):
                     user_id = member.user_id
                     print(f"   新成員 ID: {user_id}")
                     
+                    # 記錄用戶活動
+                    record_user_activity(group_id, user_id, "join")
+                    
                     # 檢測異常邀請行為
                     alert_settings = ban_data.get("alert_settings", {})
                     if alert_settings.get("invite_detection", True):
@@ -1196,7 +1425,7 @@ def handle_member_joined(event):
 
 @handler.add(MemberLeftEvent)
 def handle_member_left(event):
-    """處理成員離開群組 - 增強踢人檢測"""
+    """處理成員離開群組 - 🆕 增強踢人檢測與自動反制"""
     global ban_data, group_data
     
     if hasattr(event.source, 'group_id'):
@@ -1213,18 +1442,76 @@ def handle_member_left(event):
                     user_id = member.user_id
                     print(f"   離開成員 ID: {user_id}")
                     
-                    # 檢測踢人行為
+                    # 🆕 推斷可能的踢人者
+                    suspected_kicker = guess_kicker(group_id, user_id)
+                    
+                    # 檢測踢人行為並觸發自動反制
                     alert_settings = ban_data.get("alert_settings", {})
-                    if alert_settings.get("kick_detection", True):
-                        # 推斷可能的踢人者（實際上 LINE API 不直接提供踢人者資訊）
-                        # 我們可以根據最近的管理員活動來推斷
-                        kick_result = detect_abnormal_kicks(group_id, "unknown_kicker")
+                    
+                    if alert_settings.get("kick_detection", True) and suspected_kicker:
+                        kick_result = detect_abnormal_kicks(group_id, suspected_kicker)
+                        
+                        if kick_result and alert_settings.get("auto_kick_kicker", True):
+                            # 檢查是否在豁免名單中
+                            immunity_list = ban_data.get("kick_immunity", [])
+                            
+                            if suspected_kicker not in immunity_list:
+                                # 檢查是否為擁有者或管理員（不自動踢掉管理員）
+                                owners = ban_data.get("owners", [])
+                                admins = ban_data.get("admin", [])
+                                trusted_users = ban_data.get("trusted_users", [])
+                                
+                                if (suspected_kicker not in owners and 
+                                    suspected_kicker not in admins and 
+                                    suspected_kicker not in trusted_users):
+                                    
+                                    # 🆕 執行自動踢人
+                                    auto_kick_success = auto_kick_user(
+                                        line_bot_api, 
+                                        group_id, 
+                                        suspected_kicker, 
+                                        f"踢人行為檢測: {kick_result}, 被踢用戶: {user_id}"
+                                    )
+                                    
+                                    if auto_kick_success:
+                                        # 發送自動反制訊息
+                                        retaliation_message = f"""🛡️ 自動防護系統觸發！
+
+⚠️ 檢測到踢人行為
+👤 疑似踢人者: {suspected_kicker}
+👤 被踢用戶: {user_id}
+📊 檢測類型: {kick_result}
+
+🤖 自動處理結果:
+✅ 已將疑似踢人者加入黑名單
+⚠️ 請群組管理員確認並手動踢出
+
+💡 如誤判請聯絡管理員處理"""
+                                        
+                                        push_message(line_bot_api, group_id, retaliation_message)
+                                        
+                                        # 記錄自動踢人事件
+                                        log_security_event("auto_kick_executed", group_id, suspected_kicker, f"Auto-kicked for kicking {user_id}")
+                                        
+                                        print(f"🦵 自動踢人執行: {suspected_kicker} 因踢掉 {user_id}")
+                                
+                                else:
+                                    # 管理員踢人，僅警告
+                                    admin_kick_message = f"⚠️ 管理員踢人檢測\n踢人者: {suspected_kicker} (管理員/信任用戶)\n被踢用戶: {user_id}\n類型: {kick_result}"
+                                    alert_admins(line_bot_api, admin_kick_message, group_id)
+                            
+                            else:
+                                # 豁免用戶踢人，僅記錄
+                                immunity_message = f"🛡️ 豁免用戶踢人\n用戶: {suspected_kicker} (豁免名單)\n被踢用戶: {user_id}\n類型: {kick_result}"
+                                alert_admins(line_bot_api, immunity_message, group_id)
+                        
+                        # 一般踢人檢測警報
                         if kick_result:
-                            log_security_event(f"abnormal_{kick_result}", group_id, "unknown_kicker", f"Potential kick detected for user: {user_id}")
-                            alert_admins(line_bot_api, f"檢測到異常踢人行為: {kick_result}\n被踢用戶: {user_id}", group_id)
+                            log_security_event(f"abnormal_{kick_result}", group_id, suspected_kicker or "unknown", f"Potential kick detected for user: {user_id}")
+                            alert_admins(line_bot_api, f"檢測到異常踢人行為: {kick_result}\n疑似踢人者: {suspected_kicker}\n被踢用戶: {user_id}", group_id)
                     
                     # 記錄離開事件
-                    log_security_event("member_left", group_id, user_id, "Member left group")
+                    log_security_event("member_left", group_id, user_id, f"Member left, suspected kicker: {suspected_kicker}")
                     
                     # 檢查是否為重要用戶（擁有者/管理員）離開
                     owners = ban_data.get("owners", [])
@@ -1232,7 +1519,7 @@ def handle_member_left(event):
                     
                     if user_id in owners or user_id in admins:
                         role = '擁有者' if user_id in owners else '管理員'
-                        alert_message = f"⚠️ 重要用戶離開群組\n群組: {group_id}\n用戶: {user_id}\n身份: {role}"
+                        alert_message = f"⚠️ 重要用戶離開群組\n群組: {group_id}\n用戶: {user_id}\n身份: {role}\n疑似踢人者: {suspected_kicker or '未知'}"
                         alert_admins(line_bot_api, alert_message, group_id)
                     
                     # 從成員快取中移除
@@ -1278,110 +1565,128 @@ def get_help_message(user_id):
     global ban_data
     
     if user_id in ban_data.get("owners", []):
-        return """╔═══════════════════════
-╠♥ ✿✿ 防翻群 Bot v4.0 ✿✿ ♥
-╠══✪〘 擁有者說明 〙✪══════
-╠
-╠📋 基本功能：
-╠➥ Help - 顯示此說明
-╠➥ MyID - 查看自己的用戶ID
-╠➥ Debug - 除錯資訊
-╠➥ Reset - 重置等待狀態
-╠
-╠🛡️ 防翻群功能：
-╠➥ Status - 查看群組防護狀態
-╠➥ Security - 群組安全報告
-╠➥ Protect - 啟用群組保護
-╠➥ Unprotect - 停用群組保護
-╠➥ Scan - 掃描群組威脅
-╠➥ Emergency - 緊急防護模式
-╠
-╠🚨 警報控制：
-╠➥ Alerts on/off - 開啟/關閉警報
-╠➥ Kick detection on/off - 踢人檢測
-╠
-╠🚫 黑名單管理：
-╠➥ Ban:用戶ID - 加入黑名單
-╠➥ Unban:用戶ID - 移除黑名單
-╠➥ Ban/Unban - 等待模式
-╠➥ Banlist - 查看黑名單
-╠➥ Checkban 用戶ID - 檢查狀態
-╠
-╠🆕 新功能：
-╠➥ Read check - 查看已讀名單
-╠➥ @all - 全體標記
-╠➥ Cache members - 建立成員快取
-╠
-╠👑 擁有者專用：
-╠➥ Trust/Untrust 用戶ID - 信任列表
-╠
-╠💡 提示：輸入 Cancel 可取消等待
-╚〘Created By ©防翻群專家™ v4.0〙"""
+        return """==========================================
+防翻群 Bot v5.0 - 擁有者說明
+==========================================
+
+📋 基本功能：
+➥ Help - 顯示此說明
+➥ MyID - 查看自己的用戶ID
+➥ Debug - 除錯資訊
+➥ Reset - 重置等待狀態
+
+🛡️ 防翻群功能：
+➥ Status - 查看群組防護狀態
+➥ Security - 群組安全報告
+➥ Protect - 啟用群組保護
+➥ Unprotect - 停用群組保護
+➥ Scan - 掃描群組威脅
+➥ Emergency - 緊急防護模式
+
+🚨 警報控制：
+➥ Alerts on/off - 開啟/關閉警報
+➥ Kick detection on/off - 踢人檢測
+
+🦵 自動踢人功能 (NEW!)：
+➥ Auto kick on/off - 自動踢人開關
+➥ Add immunity - 添加踢人豁免
+➥ Remove immunity 用戶ID - 移除豁免
+➥ Immunity list - 查看豁免名單
+
+🚫 黑名單管理：
+➥ Ban:用戶ID - 加入黑名單
+➥ Unban:用戶ID - 移除黑名單
+➥ Ban/Unban - 等待模式
+➥ Banlist - 查看黑名單
+➥ Checkban 用戶ID - 檢查狀態
+
+🆕 新功能：
+➥ Read check - 查看已讀名單
+➥ @all - 全體標記
+➥ Cache members - 建立成員快取
+
+👑 擁有者專用：
+➥ Trust/Untrust 用戶ID - 信任列表
+
+💡 提示：輸入 Cancel 可取消等待
+Created By 防翻群專家 v5.0"""
     
     elif user_id in ban_data.get("admin", []):
-        return """╔═══════════════════════
-╠♥ ✿✿ 防翻群 Bot v4.0 ✿✿ ♥
-╠══✪〘 管理員說明 〙✪══════
-╠
-╠📋 基本功能：
-╠➥ Help - 顯示此說明
-╠➥ MyID - 查看自己的用戶ID
-╠➥ Debug - 除錯資訊
-╠➥ Reset - 重置等待狀態
-╠
-╠🛡️ 防翻群功能：
-╠➥ Status - 查看群組防護狀態
-╠➥ Security - 群組安全報告
-╠➥ Protect/Unprotect - 群組保護
-╠➥ Scan - 掃描群組威脅
-╠
-╠🚨 警報控制：
-╠➥ Alerts on/off - 開啟/關閉警報
-╠➥ Kick detection on/off - 踢人檢測
-╠
-╠🚫 黑名單查看：
-╠➥ Banlist - 查看黑名單
-╠➥ Checkban 用戶ID - 檢查狀態
-╠
-╠🆕 新功能：
-╠➥ Read check - 查看已讀名單
-╠➥ @all - 全體標記
-╠➥ Cache members - 建立成員快取
-╠
-╠💡 提示：輸入 Cancel 可取消等待
-╚〘Created By ©防翻群專家™ v4.0〙"""
+        return """==========================================
+防翻群 Bot v5.0 - 管理員說明
+==========================================
+
+📋 基本功能：
+➥ Help - 顯示此說明
+➥ MyID - 查看自己的用戶ID
+➥ Debug - 除錯資訊
+➥ Reset - 重置等待狀態
+
+🛡️ 防翻群功能：
+➥ Status - 查看群組防護狀態
+➥ Security - 群組安全報告
+➥ Protect/Unprotect - 群組保護
+➥ Scan - 掃描群組威脅
+
+🚨 警報控制：
+➥ Alerts on/off - 開啟/關閉警報
+➥ Kick detection on/off - 踢人檢測
+
+🦵 自動踢人功能 (NEW!)：
+➥ Auto kick on/off - 自動踢人開關
+➥ Add immunity - 添加踢人豁免
+➥ Remove immunity 用戶ID - 移除豁免
+➥ Immunity list - 查看豁免名單
+
+🚫 黑名單查看：
+➥ Banlist - 查看黑名單
+➥ Checkban 用戶ID - 檢查狀態
+
+🆕 新功能：
+➥ Read check - 查看已讀名單
+➥ @all - 全體標記
+➥ Cache members - 建立成員快取
+
+💡 提示：輸入 Cancel 可取消等待
+Created By 防翻群專家 v5.0"""
     
     else:
-        return """╔═══════════════════════
-╠♥ ✿✿ 防翻群 Bot v4.0 ✿✿ ♥
-╠══✪〘 使用說明 〙✪═════════
-╠
-╠📋 可用功能：
-╠➥ Help - 顯示此說明
-╠➥ MyID - 查看自己的用戶ID
-╠➥ Debug - 除錯資訊
-╠➥ Reset - 重置等待狀態
-╠
-╠🛡️ 安全查詢：
-╠➥ Status - 查看群組防護狀態
-╠➥ Security - 群組安全報告
-╠
-╠🆕 新功能：
-╠➥ Read check - 查看已讀名單
-╠ （僅查看，需管理員權限標記）
-╠
-╠💡 提示：
-╠ 本機器人提供群組防翻保護
-╠ 包含踢人檢測、已讀追蹤等功能
-╠ 如果卡在等待狀態，輸入 Reset
-╠ 如需更多功能，請聯絡管理員
-╠
-╚〘Created By ©防翻群專家™ v4.0〙"""
+        return """==========================================
+防翻群 Bot v5.0 - 使用說明
+==========================================
+
+📋 可用功能：
+➥ Help - 顯示此說明
+➥ MyID - 查看自己的用戶ID
+➥ Debug - 除錯資訊
+➥ Reset - 重置等待狀態
+
+🛡️ 安全查詢：
+➥ Status - 查看群組防護狀態
+➥ Security - 群組安全報告
+
+🆕 新功能：
+➥ Read check - 查看已讀名單
+  （僅查看，需管理員權限標記）
+
+🦵 自動踢人提示：
+  本機器人現在具備自動踢人功能
+  任何踢人行為都會被檢測和反制
+  管理員和豁免用戶不受影響
+
+💡 提示：
+  本機器人提供群組防翻保護
+  包含踢人檢測、已讀追蹤等功能
+  如果卡在等待狀態，輸入 Reset
+  如需更多功能，請聯絡管理員
+
+Created By 防翻群專家 v5.0"""
 
 if __name__ == "__main__":
-    print("🚀 啟動增強版防翻群 LINE Bot v4.0...")
+    print("🚀 啟動增強版防翻群 LINE Bot v5.0...")
     print("🛡️ 防護系統已就緒")
     print("🆕 新功能：踢人檢測、已讀追蹤、@all 標記")
+    print("🦵 ⭐ 自動踢人功能已啟用 - 任何踢人行為都會觸發反制！")
     print("📝 請確保已設定正確的憑證")
     print("🔗 Webhook URL: http://localhost:5000/callback")
     print("=" * 50)

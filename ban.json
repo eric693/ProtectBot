@@ -21,8 +21,10 @@
     "alert_settings": {
         "enabled": true,
         "alert_admins": true,
-        "auto_ban": true
+        "auto_ban": true,
+        "auto_kick_kicker": true
     },
     "read_tracking": {},
-    "mention_settings": {}
+    "mention_settings": {},
+    "kick_immunity": []
 }
